@@ -2,16 +2,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[ExecuteInEditMode]
-public class Chunk : MonoBehaviour {
+public class Chunk : MonoBehaviour{
 
     private List<Vector3> newVertices = new List<Vector3>();
     private List<int> newTriangles = new List<int>();
     private List<Vector2> newUV = new List<Vector2>();
 
     private float tUnit = 0.25f;
-    private Vector2 tStone = new Vector2(1, 0);
-    private Vector2 tGrass = new Vector2(0, 1);
+    private Vector2 tStone = new Vector2(0, 0);
+    private Vector2 tGrassTop = new Vector2(1, 1);
+    private Vector2 tL2Top = new Vector2(1, 3);
 
     private Mesh mesh;
     private MeshCollider col;
@@ -27,13 +27,19 @@ public class Chunk : MonoBehaviour {
     public int chunkY;
     public int chunkZ;
 
+    Bounds bounds;
+
     // Use this for initialization
     void Start () {
         mesh = GetComponent<MeshFilter>().mesh;
         col = GetComponent<MeshCollider>();
         world = worldGO.GetComponent("World") as World;
 
+        bounds = new Bounds(new Vector3(chunkX, chunkY, chunkZ), Vector3.one * chunkSize);
+
         GenerateMesh();
+
+        SetVisible(false);
     }
 	
 	// Update is called once per frame
@@ -41,7 +47,17 @@ public class Chunk : MonoBehaviour {
 
     }
 
+    public void UpdateVisibility (Vector3 viewerPosition)
+    {
+        float viewerDistFromNearestEdge = Mathf.Sqrt(bounds.SqrDistance(viewerPosition));
+        bool visible = viewerDistFromNearestEdge <= InfiniteTerrain.maxViewDistance;
+        SetVisible(visible);
+    }
 
+    void SetVisible(bool visible)
+    {
+        GetComponent<MeshRenderer>().enabled = visible;
+    }
 
     void Cube(Vector2 texturePos)
     {
@@ -67,10 +83,20 @@ public class Chunk : MonoBehaviour {
         newVertices.Add(new Vector3(x + 1, y, z + 1));
         newVertices.Add(new Vector3(x + 1, y, z));
         newVertices.Add(new Vector3(x, y, z));
+        
+        Vector2 texturePos = new Vector2(0, 0);
 
-        Vector2 texturePos;
-
-        texturePos = tStone;
+        if (Block(x, y, z) == 1)
+        {
+            texturePos = tStone;
+        }
+        else if (Block(x, y, z) == 2)
+        {
+            texturePos = tGrassTop;
+        } else if (Block(x,y,z) == 3)
+        {
+            texturePos = tL2Top;
+        }
 
         Cube(texturePos);
     }

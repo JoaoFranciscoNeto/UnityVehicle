@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
+using UnityEngine.UI;
 
 public class World : MonoBehaviour
 {
@@ -23,13 +25,21 @@ public class World : MonoBehaviour
     public int seed;
     public Vector2 offset;
 
-    public AnimationCurve meshHeightCurve;
-    public float heightThreshold = .75f;
+    public Vector2[] levels;
+
+    Texture2D texture;
+    public Material mapMaterial;
+    
 
     // Use this for initialization
     void Start()
     {
+        texture = new Texture2D(worldX, worldZ,TextureFormat.ARGB32,false);
+
         GenerateWorld();
+
+        mapMaterial.mainTexture = texture;
+
     }
 
     public void GenerateWorld()
@@ -38,17 +48,16 @@ public class World : MonoBehaviour
 
         data = new byte[worldX, worldY, worldZ];
 
-        float[,] noiseMap = Noise.GenerateNoiseMap(worldX, worldZ, seed, noiseScale, offset, octaves, persistance, lacunarity,meshHeightCurve,heightThreshold);
+        float[,] noiseMap = Noise.GenerateNoiseMap(worldX, worldZ, seed, noiseScale, offset, octaves, persistance, lacunarity,levels);
 
-
-        // Add Tunnel
-        int baseHeight = Mathf.FloorToInt(meshHeightCurve.keys[1].time * worldY) + 1;
+        ProcessMap(noiseMap);
         
         for (int x = 0; x < worldX; x++)
         {
-            for (int y = 0; y < worldY; y++)
+            for (int z = 0; z < worldZ; z++)
             {
-                for (int z = 0; z < worldZ; z++)
+
+                for (int y = 0; y < worldY; y++)
                 {
                     if (y <= noiseMap[x, z] * worldY)
                     {
@@ -59,18 +68,27 @@ public class World : MonoBehaviour
                         data[x, y, z] = 0;
                     }
 
-                    if (x >= 30 && x <= 40 && y >= baseHeight && y <= baseHeight + 2)
-                    {
-                        data[x, y, z] = 0;
-                    }
                     /*
                     else if (y <= dirt + stone)
                     { //Changed this line thanks to a comment
                         data[x, y, z] = 2;
                     }*/
+
+                    texture.SetPixel(x, z, Color.Lerp(Color.white, Color.black, noiseMap[x, z]));
+                }
+                for (int i = 0; i < levels.Length; i++)
+                {
+                    
+                    if (noiseMap[x, z] == levels[i].x)
+                    {
+                        data[x, Mathf.RoundToInt(levels[i].x * worldY), z] = (byte)(2+i);
+
+                    }
                 }
             }
         }
+
+        texture.Apply();
 
         chunks = new GameObject[Mathf.FloorToInt(worldX / chunkSize),
             Mathf.FloorToInt(worldY / chunkSize),
@@ -103,10 +121,35 @@ public class World : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-    }
-    
 
-    public byte Block(int x, int y, int z)
+        Vector3 viewerPosition = GameObject.FindGameObjectWithTag("Player").transform.position;
+        
+        foreach (GameObject c in chunks)
+        {
+            c.GetComponent<Chunk>().UpdateVisibility(viewerPosition);
+        }
+    }
+
+    void ProcessMap(float[,] map)
+    {
+        float[,] copyMap = map.Clone() as float[,];
+
+
+        byte[,] level1 = new byte[worldX, worldZ];
+
+        for (int x = 0; x < worldX; x++)
+        {
+            for (int z = 0; z < worldZ; z++)
+            {
+                if (copyMap[x,z] == levels[0].x)
+                {
+                    level1[x, z] = 1;
+                }
+            }
+        }
+    }
+
+    public byte Block(int x, int y, int z) 
     {
         if (y >= worldY)
             return (byte)0;
@@ -129,10 +172,12 @@ public class World : MonoBehaviour
 
     }
 
-    private void OnDestroy()
+    private void OnGUI()
     {
-        ClearChunks();
+        GUI.DrawTexture(new Rect(10, 10, worldX, worldZ), texture);
+        
     }
-    
+
+
 
 }
