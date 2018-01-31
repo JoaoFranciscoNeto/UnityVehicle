@@ -18,6 +18,7 @@ public class SimpleCarController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
 
+        rb.centerOfMass -= centerOfMass;
     }
 
     public void Update()
@@ -36,15 +37,14 @@ public class SimpleCarController : MonoBehaviour
 
     public void FixedUpdate()
     {
-
-        rb.centerOfMass -= centerOfMass;
-
         float motor = maxMotorTorque * Input.GetAxis("Vertical");
         float steering = maxSteeringAngle * Input.GetAxis("Horizontal");
 
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (!airborne)
         {
-            rb.AddForce(Vector3.up * 500 * rb.mass);
+            HandleGroundedMovement(motor,steering);
+        } else {
+            
         }
 
         foreach (AxleInfo axleInfo in axleInfos)
@@ -62,6 +62,22 @@ public class SimpleCarController : MonoBehaviour
             ApplyLocalPositionToVisuals(axleInfo.leftWheel);
             ApplyLocalPositionToVisuals(axleInfo.rightWheel);
         }
+
+    }
+
+    public void HandleGroundedMovement(float motor, float steering)
+    {
+
+
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            rb.AddForce(transform.up * 500 * rb.mass);
+        }
+    }
+
+    public void HandleAirborneMovement(float motor, float steering)
+    {
+
     }
 
     // finds the corresponding visual wheel
