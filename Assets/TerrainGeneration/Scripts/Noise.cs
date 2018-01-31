@@ -101,7 +101,7 @@ public static class Noise {
         return noiseMap;
     }
 
-    public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight, int seed, float scale, Vector2 offset, int octaves, float persistance, float lacunarity, Vector2[] levels)
+    public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight, int seed, float scale, Vector2 offset, int octaves, float persistance, float lacunarity, AnimationCurve heightCurve)
     {
         float[,] noiseMap = new float[mapWidth, mapHeight];
 
@@ -163,6 +163,7 @@ public static class Noise {
                     minNoiseHeight = noiseHeight;
 
                 noiseMap[x, y] = noiseHeight;
+
             }
         }
 
@@ -170,15 +171,7 @@ public static class Noise {
         {
             for (int x = 0; x < mapWidth; x++)
             {
-                noiseMap[x, y] = Mathf.InverseLerp(minNoiseHeight, maxNoiseHeight, noiseMap[x, y]);
-
-                foreach (Vector2 level in levels)
-                {
-                    if (noiseMap[x,y] > level.x - level.y && noiseMap[x,y] < level.x + level.y)
-                    {
-                        noiseMap[x, y] = level.x;
-                    }
-                }
+                noiseMap[x, y] =heightCurve.Evaluate( Mathf.InverseLerp(minNoiseHeight, maxNoiseHeight, noiseMap[x, y]));
             }
         }
 

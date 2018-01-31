@@ -12,12 +12,25 @@ public class SimpleCarController : MonoBehaviour
 
     public Vector3 centerOfMass = new Vector3(0, 0, 0);
 
+    public bool airborne;
+
     private void Start()
     {
         rb = GetComponent<Rigidbody>();
 
     }
 
+    public void Update()
+    {
+        foreach(AxleInfo axleInfo in axleInfos)
+        {
+            airborne = airborne && (!axleInfo.leftWheel.isGrounded && !axleInfo.rightWheel.isGrounded);
+            if (!airborne)
+                break;
+        }
+
+
+    }
 
 
 

@@ -25,11 +25,21 @@ public class World : MonoBehaviour
     public int seed;
     public Vector2 offset;
 
-    public Vector2[] levels;
+    public AnimationCurve heightCurve;
 
     Texture2D texture;
     public Material mapMaterial;
-    
+
+    float[,] filter = new float[5, 5]
+    {
+        {0,     1,      1,      1,      0},
+        {1,     1,      1,      1,      1},
+        {1,     1,      1,      1,      1},
+        {1,     1,      1,      1,      1},
+        {0,     1,      1,      1,      0},
+    };
+    Vector2[] startPoints;
+
 
     // Use this for initialization
     void Start()
@@ -48,9 +58,9 @@ public class World : MonoBehaviour
 
         data = new byte[worldX, worldY, worldZ];
 
-        float[,] noiseMap = Noise.GenerateNoiseMap(worldX, worldZ, seed, noiseScale, offset, octaves, persistance, lacunarity,levels);
+        float[,] noiseMap = Noise.GenerateNoiseMap(worldX, worldZ, seed, noiseScale, offset, octaves, persistance, lacunarity,heightCurve);
 
-        ProcessMap(noiseMap);
+        //ProcessMap(noiseMap);
         
         for (int x = 0; x < worldX; x++)
         {
@@ -76,17 +86,9 @@ public class World : MonoBehaviour
 
                     texture.SetPixel(x, z, Color.Lerp(Color.white, Color.black, noiseMap[x, z]));
                 }
-                for (int i = 0; i < levels.Length; i++)
-                {
-                    
-                    if (noiseMap[x, z] == levels[i].x)
-                    {
-                        data[x, Mathf.RoundToInt(levels[i].x * worldY), z] = (byte)(2+i);
-
-                    }
-                }
             }
         }
+
 
         texture.Apply();
 
@@ -132,21 +134,8 @@ public class World : MonoBehaviour
 
     void ProcessMap(float[,] map)
     {
-        float[,] copyMap = map.Clone() as float[,];
-
-
-        byte[,] level1 = new byte[worldX, worldZ];
-
-        for (int x = 0; x < worldX; x++)
-        {
-            for (int z = 0; z < worldZ; z++)
-            {
-                if (copyMap[x,z] == levels[0].x)
-                {
-                    level1[x, z] = 1;
-                }
-            }
-        }
+        startPoints = MapProcessing.filterMax(map, filter);
+        
     }
 
     public byte Block(int x, int y, int z) 
@@ -171,6 +160,17 @@ public class World : MonoBehaviour
         }
 
     }
+
+    private void OnDrawGizmos()
+    { /*
+        foreach (Vector2 p in startPoints)
+        {
+            Gizmos.DrawSphere(new Vector3(p.x, 32, p.y), 1);
+        }
+        */
+    }
+
+
 
     private void OnGUI()
     {
