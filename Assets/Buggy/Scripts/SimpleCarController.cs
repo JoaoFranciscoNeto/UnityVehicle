@@ -14,6 +14,10 @@ public class SimpleCarController : MonoBehaviour
 
     public bool airborne;
 
+    public float jumpForce = 100;
+
+
+
     private void Start()
     {
         rb = GetComponent<Rigidbody>();
@@ -23,6 +27,7 @@ public class SimpleCarController : MonoBehaviour
 
     public void Update()
     {
+        airborne = true;
         foreach(AxleInfo axleInfo in axleInfos)
         {
             airborne = airborne && (!axleInfo.leftWheel.isGrounded && !axleInfo.rightWheel.isGrounded);
@@ -37,27 +42,27 @@ public class SimpleCarController : MonoBehaviour
 
     public void FixedUpdate()
     {
-        float motor = maxMotorTorque * Input.GetAxis("Vertical");
-        float steering = maxSteeringAngle * Input.GetAxis("Horizontal");
+        float vertical = maxMotorTorque * Input.GetAxis("Vertical");
+        float horizontal = maxSteeringAngle * Input.GetAxis("Horizontal");
 
         if (!airborne)
         {
-            HandleGroundedMovement(motor,steering);
+            HandleGroundedMovement(vertical,horizontal);
         } else {
-            
+            //HandleAirborneMovement(vertical, horizontal);
         }
 
         foreach (AxleInfo axleInfo in axleInfos)
         {
             if (axleInfo.steering)
             {
-                axleInfo.leftWheel.steerAngle = steering;
-                axleInfo.rightWheel.steerAngle = steering;
+                axleInfo.leftWheel.steerAngle = horizontal;
+                axleInfo.rightWheel.steerAngle = horizontal;
             }
             if (axleInfo.motor)
             {
-                axleInfo.leftWheel.motorTorque = motor;
-                axleInfo.rightWheel.motorTorque = motor;
+                axleInfo.leftWheel.motorTorque = vertical;
+                axleInfo.rightWheel.motorTorque = vertical;
             }
             ApplyLocalPositionToVisuals(axleInfo.leftWheel);
             ApplyLocalPositionToVisuals(axleInfo.rightWheel);
@@ -71,13 +76,14 @@ public class SimpleCarController : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            rb.AddForce(transform.up * 500 * rb.mass);
+            rb.AddForce(transform.up * jumpForce * rb.mass);
         }
     }
 
-    public void HandleAirborneMovement(float motor, float steering)
+    public void HandleAirborneMovement(float pitch, float roll)
     {
-
+        rb.AddTorque(transform.right * pitch * Time.deltaTime * 200);
+        rb.AddTorque(transform.forward * roll * Time.deltaTime * 200);
     }
 
     // finds the corresponding visual wheel

@@ -6,33 +6,38 @@ public class GravityManager : MonoBehaviour {
 
     SimpleCarController m_carController;
     Rigidbody m_vehicleRigidbody;
+    ConstantForce m_constantForce;
 
-    Vector3 surfaceNormal = new Vector3(0,1,0);
+    public Vector3 surfaceNormal = new Vector3(0,1,0);
 
 
 	// Use this for initialization
 	void Start () {
-        m_carController = GetComponentInParent<SimpleCarController>();
-        m_vehicleRigidbody = transform.parent.GetComponent<Rigidbody>();
-        
-	}
+        m_carController = GetComponent<SimpleCarController>();
+        m_vehicleRigidbody = GetComponent<Rigidbody>();
+
+        m_constantForce = GetComponent<ConstantForce>();
+        m_constantForce.force = -surfaceNormal * 9.8f * m_vehicleRigidbody.mass;
+    }
 	
 	// Update is called once per frame
 	void Update () {
-        RaycastHit hit;
-        Ray r = new Ray(transform.position, -transform.up);
-        if (Physics.Raycast(r,out hit, 20))
+
+        if (m_carController.airborne)
         {
-            surfaceNormal = hit.normal;
-            Debug.Log("Updated normal to " + surfaceNormal);
+            RaycastHit hit;
+            Ray r = new Ray(transform.position, -transform.up);
+            if (Physics.Raycast(r, out hit, 10))
+            {
+                surfaceNormal = hit.normal;
+                m_constantForce.force = -surfaceNormal * 9.8f * m_vehicleRigidbody.mass;
+            }
         }
 	}
 
     private void FixedUpdate()
     {
-        m_vehicleRigidbody.AddForce(-surfaceNormal * 9.8f, ForceMode.Acceleration);
-
-
+        
     }
     
 }
