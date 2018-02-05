@@ -9,8 +9,10 @@ public class WorldEditor : Editor {
     public override void OnInspectorGUI()
     {
         World world = (World)target;
-
-        DrawDefaultInspector();
+        if (DrawDefaultInspector() && world.autoUpdate)
+        {
+            world.GenerateWorld();
+        }
 
         if (GUILayout.Button("Generate"))
         {

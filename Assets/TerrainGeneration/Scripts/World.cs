@@ -4,8 +4,19 @@ using UnityEngine;
 using System.Linq;
 using UnityEngine.UI;
 
+[ExecuteInEditMode]
 public class World : MonoBehaviour
 {
+
+    public enum DrawMode
+    {
+        NoiseMap,
+        ColorMap,
+        Mesh,
+        Voxel
+    }
+
+    public DrawMode drawMode;
 
     public GameObject chunk;
     public GameObject[,,] chunks;
@@ -19,6 +30,7 @@ public class World : MonoBehaviour
     public float noiseScale = 1;
 
     public int octaves;
+    [Range(0, 1)]
     public float persistance;
     public float lacunarity;
 
@@ -27,8 +39,10 @@ public class World : MonoBehaviour
 
     public AnimationCurve heightCurve;
 
-    Texture2D texture;
-    public Material mapMaterial;
+    public TerrainType[] regions;
+
+    public bool autoUpdate;
+    
 
     float[,] filter = new float[5, 5]
     {
@@ -38,27 +52,58 @@ public class World : MonoBehaviour
         {1,     1,      1,      1,      1},
         {0,     1,      1,      1,      0},
     };
-    Vector2[] startPoints;
+    Vector2[] plateues;
 
 
     // Use this for initialization
     void Start()
     {
-        texture = new Texture2D(worldX, worldZ,TextureFormat.ARGB32,false);
 
         GenerateWorld();
-
-        mapMaterial.mainTexture = texture;
-
+        
     }
 
     public void GenerateWorld()
     {
+        float[,] noiseMap = Noise.GenerateNoiseMap(worldX, worldZ, seed, noiseScale, offset, octaves, persistance, lacunarity, heightCurve);
+
+        Color[] colorMap = new Color[worldX * worldZ];
+        for (int z = 0; z < worldZ; z++)
+        {
+            for (int x = 0; x < worldX; x++)
+            {
+                float currentHeight = noiseMap[x, z];
+                for (int i = 0; i < regions.Length; i++)
+                {
+                    if (currentHeight <= regions[i].height)
+                    {
+                        colorMap[z * worldX + x] = regions[i].colour;
+                        break;
+                    }
+                }
+            }
+        }
+
+        MapDisplay display = FindObjectOfType<MapDisplay>();
+
+        if (drawMode == DrawMode.NoiseMap)
+        {
+            display.DrawTexture(TextureGenerator.TextureFromHeightMap(noiseMap));
+        }
+        else if (drawMode == DrawMode.ColorMap)
+        {
+            display.DrawTexture(TextureGenerator.TextureFromColorMap(colorMap, worldX, worldZ));
+        }
+        else if (drawMode == DrawMode.Mesh)
+        {
+            display.DrawMesh(MeshGenerator.GenerateTerrainMesh(noiseMap,worldY), TextureGenerator.TextureFromColorMap(colorMap, worldX, worldZ));
+        }
+
+
+        /*
         ClearChunks();
 
         data = new byte[worldX, worldY, worldZ];
-
-        float[,] noiseMap = Noise.GenerateNoiseMap(worldX, worldZ, seed, noiseScale, offset, octaves, persistance, lacunarity,heightCurve);
 
         //ProcessMap(noiseMap);
         
@@ -77,12 +122,7 @@ public class World : MonoBehaviour
                     {
                         data[x, y, z] = 0;
                     }
-
-                    /*
-                    else if (y <= dirt + stone)
-                    { //Changed this line thanks to a comment
-                        data[x, y, z] = 2;
-                    }*/
+                    
 
                     texture.SetPixel(x, z, Color.Lerp(Color.white, Color.black, noiseMap[x, z]));
                 }
@@ -117,28 +157,28 @@ public class World : MonoBehaviour
 
                 }
             }
-        }
+        }*/
     }
 
     // Update is called once per frame
     void Update()
     {
-
+        /*
         Vector3 viewerPosition = GameObject.FindGameObjectWithTag("Player").transform.position;
         
         foreach (GameObject c in chunks)
         {
             c.GetComponent<Chunk>().UpdateVisibility(viewerPosition);
-        }
+        }*/
     }
 
     void ProcessMap(float[,] map)
     {
-        startPoints = MapProcessing.filterMax(map, filter);
-        
+        plateues = MapProcessing.filterMax(map, filter);
+
     }
 
-    public byte Block(int x, int y, int z) 
+    public byte Block(int x, int y, int z)
     {
         if (y >= worldY)
             return (byte)0;
@@ -147,7 +187,7 @@ public class World : MonoBehaviour
 
         return data[x, y, z];
     }
-    
+
     void ClearChunks()
     {
         if (chunks != null)
@@ -169,15 +209,12 @@ public class World : MonoBehaviour
         }
         */
     }
+}
 
-
-
-    private void OnGUI()
-    {
-        GUI.DrawTexture(new Rect(10, 10, worldX, worldZ), texture);
-        
-    }
-
-
-
+[System.Serializable]
+public struct TerrainType
+{
+    public string name;
+    public float height;
+    public Color colour;
 }

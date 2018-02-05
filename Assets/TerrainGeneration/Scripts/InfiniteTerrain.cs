@@ -14,7 +14,7 @@ public class InfiniteTerrain : MonoBehaviour {
     int chunkSize;
     int chunksVisibleinViewDist;
 
-    Dictionary<Vector2, Chunk> terrainChunkDictionary = new Dictionary<Vector2, Chunk>();
+    Dictionary<Vector2, VoxelChunk> terrainChunkDictionary = new Dictionary<Vector2, VoxelChunk>();
 
 	// Use this for initialization
 	void Start () {
@@ -38,7 +38,7 @@ public class InfiniteTerrain : MonoBehaviour {
 
                 } else
                 {
-                    terrainChunkDictionary.Add(viewedChunkCoord, new Chunk());
+                    terrainChunkDictionary.Add(viewedChunkCoord, new VoxelChunk());
                 }
             }
         }
