@@ -22,7 +22,7 @@ public class GravityManager : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-
+        /*
         if (m_carController.airborne)
         {
             RaycastHit hit;
@@ -32,7 +32,7 @@ public class GravityManager : MonoBehaviour {
                 surfaceNormal = hit.normal;
                 m_constantForce.force = -surfaceNormal * 9.8f * m_vehicleRigidbody.mass;
             }
-        }
+        }*/
 	}
 
     private void FixedUpdate()

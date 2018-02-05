@@ -16,6 +16,8 @@ public class SimpleCarController : MonoBehaviour
 
     public float jumpForce = 100;
 
+    float maxHandbrakeTorque;
+
 
 
     private void Start()
@@ -23,6 +25,15 @@ public class SimpleCarController : MonoBehaviour
         rb = GetComponent<Rigidbody>();
 
         rb.centerOfMass -= centerOfMass;
+
+
+        foreach (AxleInfo axleInfo in axleInfos)
+        {
+            Physics.IgnoreCollision(axleInfo.leftWheel, GetComponentInChildren<Collider>());
+            Physics.IgnoreCollision(axleInfo.rightWheel, GetComponentInChildren<Collider>());
+        }
+
+        maxHandbrakeTorque = float.MaxValue;
     }
 
     public void Update()
@@ -44,16 +55,19 @@ public class SimpleCarController : MonoBehaviour
     {
         float vertical = maxMotorTorque * Input.GetAxis("Vertical");
         float horizontal = maxSteeringAngle * Input.GetAxis("Horizontal");
+        bool handbrake = Input.GetKey(KeyCode.LeftControl);
 
         if (!airborne)
         {
-            HandleGroundedMovement(vertical,horizontal);
+            HandleGroundedMovement(vertical,horizontal,handbrake);
         } else {
             //HandleAirborneMovement(vertical, horizontal);
         }
 
         foreach (AxleInfo axleInfo in axleInfos)
         {
+
+
             if (axleInfo.steering)
             {
                 axleInfo.leftWheel.steerAngle = horizontal;
@@ -63,6 +77,9 @@ public class SimpleCarController : MonoBehaviour
             {
                 axleInfo.leftWheel.motorTorque = vertical;
                 axleInfo.rightWheel.motorTorque = vertical;
+
+                axleInfo.leftWheel.brakeTorque = maxHandbrakeTorque * (handbrake ? 1 : 0);
+                axleInfo.rightWheel.brakeTorque = maxHandbrakeTorque * (handbrake ? 1 : 0);
             }
             ApplyLocalPositionToVisuals(axleInfo.leftWheel);
             ApplyLocalPositionToVisuals(axleInfo.rightWheel);
@@ -70,10 +87,8 @@ public class SimpleCarController : MonoBehaviour
 
     }
 
-    public void HandleGroundedMovement(float motor, float steering)
+    public void HandleGroundedMovement(float motor, float steering, bool handbrake)
     {
-
-
         if (Input.GetKeyDown(KeyCode.Space))
         {
             rb.AddForce(transform.up * jumpForce * rb.mass);
