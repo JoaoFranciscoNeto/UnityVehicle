@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class VoxelGenerator
 {
+    World world;
+    Vector3 chunkOffset;
 
     List<Vector3> newVertices = new List<Vector3>();
     List<int> newTriangles = new List<int>();
@@ -14,22 +16,24 @@ public class VoxelGenerator
     Vector2 tBase = new Vector2(0, 0);
 
     int faceCount;
+    int chunkSize;
 
-    byte[,,] worldBlocks;
-
-    public MeshData GenerateVoxelMesh(byte[,,] worldVoxels)
+    public VoxelGenerator(World world, Vector3 chunkOffset)
     {
-        int width = worldVoxels.GetLength(0);
-        int height = worldVoxels.GetLength(1);
-        int depth = worldVoxels.GetLength(2);
+        this.world = world;
+        this.chunkOffset = chunkOffset;
+        chunkSize = world.chunkSize;
+    }
 
+    public MeshData GenerateVoxelMesh()
+    {
         GenerateMesh();
-
         return new MeshData(newVertices.ToArray(), newTriangles.ToArray(), newUV.ToArray());
     }
 
     void GenerateMesh()
     {
+
         for (int x = 0; x < chunkSize; x++)
         {
             for (int y = 0; y < chunkSize; y++)
@@ -89,7 +93,6 @@ public class VoxelGenerator
             }
         }
 
-        UpdateMesh();
     }
 
     void Cube(Vector2 texturePos)
@@ -195,16 +198,7 @@ public class VoxelGenerator
 
     byte Block(int x, int y, int z)
     {
-        return DataBlock(x + chunkX, y + chunkY, z + chunkZ);
+        return world.Block(x + (int)chunkOffset.x, y + (int)chunkOffset.y, z + (int)chunkOffset.z);
     }
     
-    byte DataBlock(int x, int y, int z)
-    {
-        if (y >= worldY)
-            return (byte)0;
-        else if (x >= worldX || x < 0 || y < 0 || z >= worldZ || z < 0)
-            return (byte)1;
-
-        return data[x, y, z];
-    }
 }

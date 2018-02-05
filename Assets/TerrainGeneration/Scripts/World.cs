@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using UnityEngine.UI;
+using System;
+using System.Threading;
 
 [ExecuteInEditMode]
 public class World : MonoBehaviour
@@ -11,7 +13,6 @@ public class World : MonoBehaviour
     public enum DrawMode
     {
         NoiseMap,
-        ColorMap,
         Mesh,
         Voxel
     }
@@ -39,73 +40,104 @@ public class World : MonoBehaviour
 
     public AnimationCurve heightCurve;
 
-    public TerrainType[] regions;
 
     public bool autoUpdate;
-    
 
-    float[,] filter = new float[5, 5]
-    {
-        {0,     1,      1,      1,      0},
-        {1,     1,      1,      1,      1},
-        {1,     1,      1,      1,      1},
-        {1,     1,      1,      1,      1},
-        {0,     1,      1,      1,      0},
-    };
-    Vector2[] plateues;
-
+    Queue<MapThreadInfo<MapData>> mapDataThreadInfoQueue = new Queue<MapThreadInfo<MapData>>();
+    Queue<MapThreadInfo<MeshData>> meshDataThreadInfoQueue = new Queue<MapThreadInfo<MeshData>>();
 
     // Use this for initialization
     void Start()
     {
 
-        GenerateWorld();
-        
-    }
+        GenerateMapData();
 
-    public void GenerateWorld()
-    {
-        float[,] noiseMap = Noise.GenerateNoiseMap(worldX, worldZ, seed, noiseScale, offset, octaves, persistance, lacunarity, heightCurve);
 
-        Color[] colorMap = new Color[worldX * worldZ];
-        for (int z = 0; z < worldZ; z++)
+        chunks = new GameObject[Mathf.FloorToInt(worldX / chunkSize),
+            Mathf.FloorToInt(worldY / chunkSize),
+            Mathf.FloorToInt(worldZ / chunkSize)];
+
+        for (int x = 0; x < chunks.GetLength(0); x++)
         {
-            for (int x = 0; x < worldX; x++)
+            for (int y = 0; y < chunks.GetLength(1); y++)
             {
-                float currentHeight = noiseMap[x, z];
-                for (int i = 0; i < regions.Length; i++)
+                for (int z = 0; z < chunks.GetLength(2); z++)
                 {
-                    if (currentHeight <= regions[i].height)
-                    {
-                        colorMap[z * worldX + x] = regions[i].colour;
-                        break;
-                    }
+                    chunks[x, y, z] = Instantiate(chunk,
+                     new Vector3(x * chunkSize, y * chunkSize, z * chunkSize),
+                     new Quaternion(0, 0, 0, 0),
+                     transform) as GameObject;
+
+                    VoxelChunk newChunkScript = chunks[x, y, z].GetComponent("VoxelChunk") as VoxelChunk;
+
+                    newChunkScript.worldGO = gameObject;
+                    newChunkScript.chunkSize = chunkSize;
+                    newChunkScript.chunkX = x * chunkSize;
+                    newChunkScript.chunkY = y * chunkSize;
+                    newChunkScript.chunkZ = z * chunkSize;
+
                 }
             }
         }
+        
 
+    }
+
+    public void DrawMapInEditor()
+    {
+        MapData mapData = GenerateMapData();
         MapDisplay display = FindObjectOfType<MapDisplay>();
 
         if (drawMode == DrawMode.NoiseMap)
         {
-            display.DrawTexture(TextureGenerator.TextureFromHeightMap(noiseMap));
+            display.DrawTexture(TextureGenerator.TextureFromHeightMap(mapData.heightMap));
         }
-        else if (drawMode == DrawMode.ColorMap)
+
+    }
+
+    public void RequestMapData(Action<MapData> callback)
+    {
+        ThreadStart threadStart = delegate
         {
-            display.DrawTexture(TextureGenerator.TextureFromColorMap(colorMap, worldX, worldZ));
-        }
-        else if (drawMode == DrawMode.Mesh)
+            MapDataThread(callback);
+        };
+
+        new Thread(threadStart).Start();
+    }
+
+    void MapDataThread(Action<MapData> callback)
+    {
+        MapData mapData = GenerateMapData();
+        lock (mapDataThreadInfoQueue)
         {
-            display.DrawMesh(MeshGenerator.GenerateTerrainMesh(noiseMap,worldY), TextureGenerator.TextureFromColorMap(colorMap, worldX, worldZ));
+            mapDataThreadInfoQueue.Enqueue(new MapThreadInfo<MapData>(callback, mapData));
         }
+    }
+
+    public void RequestMeshData(MapData mapData, Action<MeshData> callback)
+    {
+        ThreadStart threadStart = delegate {
+            MeshDataThread(mapData, callback);
+        };
+        new Thread(threadStart).Start();
+    }
+
+    void MeshDataThread(MapData mapData, Action<MeshData> callback)
+    {
+        MeshData meshData = new VoxelGenerator(this,).GenerateVoxelMesh();
+    }
+
+    MapData GenerateMapData()
+    {
+        float[,] noiseMap = Noise.GenerateNoiseMap(worldX, worldZ, seed, noiseScale, offset, octaves, persistance, lacunarity, heightCurve);
+
+        return new MapData(noiseMap, Vector3.zero);
 
 
         /*
         ClearChunks();
 
         data = new byte[worldX, worldY, worldZ];
-
-        //ProcessMap(noiseMap);
         
         for (int x = 0; x < worldX; x++)
         {
@@ -163,21 +195,25 @@ public class World : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        /*
-        Vector3 viewerPosition = GameObject.FindGameObjectWithTag("Player").transform.position;
-        
-        foreach (GameObject c in chunks)
+        if (mapDataThreadInfoQueue.Count > 0)
         {
-            c.GetComponent<Chunk>().UpdateVisibility(viewerPosition);
-        }*/
+            for (int i = 0; i < mapDataThreadInfoQueue.Count; i++)
+            {
+                MapThreadInfo<MapData> threadInfo = mapDataThreadInfoQueue.Dequeue();
+                threadInfo.callback(threadInfo.parameter);
+            }
+        }
+
+        if (meshDataThreadInfoQueue.Count > 0)
+        {
+            for (int i = 0; i < meshDataThreadInfoQueue.Count; i++)
+            {
+                MapThreadInfo<MeshData> threadInfo = meshDataThreadInfoQueue.Dequeue();
+                threadInfo.callback(threadInfo.parameter);
+            }
+        }
     }
-
-    void ProcessMap(float[,] map)
-    {
-        plateues = MapProcessing.filterMax(map, filter);
-
-    }
-
+    
     public byte Block(int x, int y, int z)
     {
         if (y >= worldY)
@@ -201,13 +237,16 @@ public class World : MonoBehaviour
 
     }
 
-    private void OnDrawGizmos()
-    { /*
-        foreach (Vector2 p in startPoints)
+    struct MapThreadInfo<T>
+    {
+        public readonly Action<T> callback;
+        public readonly T parameter;
+
+        public MapThreadInfo(Action<T> callback, T parameter)
         {
-            Gizmos.DrawSphere(new Vector3(p.x, 32, p.y), 1);
+            this.callback = callback;
+            this.parameter = parameter;
         }
-        */
     }
 }
 
@@ -217,4 +256,16 @@ public struct TerrainType
     public string name;
     public float height;
     public Color colour;
+}
+
+public struct MapData
+{
+    public float[,] heightMap;
+    public Vector3 chunkOffset;
+
+    public MapData(float[,] heightMap, Vector3 chunkOffset)
+    {
+        this.heightMap = heightMap;
+        this.chunkOffset = chunkOffset;
+    }
 }

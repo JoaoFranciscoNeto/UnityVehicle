@@ -11,12 +11,12 @@ public class WorldEditor : Editor {
         World world = (World)target;
         if (DrawDefaultInspector() && world.autoUpdate)
         {
-            world.GenerateWorld();
+            world.DrawMapInEditor();
         }
 
         if (GUILayout.Button("Generate"))
         {
-            world.GenerateWorld();
+            world.DrawMapInEditor();
         }
     }
 }
