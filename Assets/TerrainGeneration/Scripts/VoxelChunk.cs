@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Chunk : MonoBehaviour{
+public class VoxelChunk : MonoBehaviour{
 
     private List<Vector3> newVertices = new List<Vector3>();
     private List<int> newTriangles = new List<int>();
@@ -57,6 +57,7 @@ public class Chunk : MonoBehaviour{
     void SetVisible(bool visible)
     {
         GetComponent<MeshRenderer>().enabled = visible;
+        GetComponent<MeshCollider>().enabled = visible;
     }
 
     void Cube(Vector2 texturePos)
