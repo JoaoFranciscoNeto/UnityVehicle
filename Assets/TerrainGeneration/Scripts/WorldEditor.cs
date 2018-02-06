@@ -14,9 +14,19 @@ public class WorldEditor : Editor {
             world.DrawMapInEditor();
         }
 
-        if (GUILayout.Button("Generate"))
+        if (GUILayout.Button("Display"))
         {
             world.DrawMapInEditor();
+        }
+
+        if (GUILayout.Button("Generate"))
+        {
+            world.GenerateMap();
+        }
+
+        if (GUILayout.Button("Clear Chunks"))
+        {
+            world.ClearChunks();
         }
     }
 }

@@ -1,7 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
+using System.Threading;
 
+[ExecuteInEditMode]
 public class VoxelChunk : MonoBehaviour{
     
 
@@ -21,24 +24,25 @@ public class VoxelChunk : MonoBehaviour{
 
     // Use this for initialization
     void Start () {
-        mesh = GetComponent<MeshFilter>().mesh;
         col = GetComponent<MeshCollider>();
         world = worldGO.GetComponent("World") as World;
 
-        bounds = new Bounds(new Vector3(chunkX, chunkY, chunkZ), Vector3.one * chunkSize);
+        bounds = new Bounds(transform.position, Vector3.one * chunkSize);
 
-        world.RequestMapData(OnMapDataReceived);
-
+        world.RequestMeshData(new Vector2(chunkX, chunkZ), OnMeshDataReceived);
         SetVisible(false);
     }
 	
 	// Update is called once per frame
 	void Update () {
-
+        UpdateVisibility(GameObject.FindGameObjectWithTag("Player").transform.position);
     }
 
-    void OnMapDataReceived(MapData mapData)
+    void OnMeshDataReceived(ChunkMeshData chunkMeshData)
     {
+        mesh = chunkMeshData.CreateMesh();
+        GetComponent<MeshFilter>().sharedMesh = mesh;
+        col.sharedMesh = mesh;
 
     }
 

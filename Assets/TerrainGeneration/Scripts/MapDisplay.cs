@@ -13,16 +13,16 @@ public class MapDisplay : MonoBehaviour {
     public void DrawTexture(Texture2D texture)
     {
         mapRenderer.sharedMaterial.mainTexture = texture;
-        mapRenderer.transform.localScale = new Vector3(texture.width, 1, texture.height);
+        mapRenderer.transform.localScale = new Vector3(texture.width / 10f, 1, texture.height / 10f);
     }
 
-    public void DrawMesh(MeshData meshData, Texture2D texture)
+    public void DrawMesh(ChunkMeshData meshData, Texture2D texture)
     {
         meshFilter.sharedMesh = meshData.CreateMesh();
         meshRenderer.sharedMaterial.mainTexture = texture;
     }
 
-    public void DrawVoxel(MeshData meshData)
+    public void DrawVoxel(ChunkMeshData meshData)
     {
         meshFilter.sharedMesh = meshData.CreateMesh();
     }

@@ -5,7 +5,7 @@ using UnityEngine;
 public class VoxelGenerator
 {
     World world;
-    Vector3 chunkOffset;
+    Vector2 chunkOffset;
 
     List<Vector3> newVertices = new List<Vector3>();
     List<int> newTriangles = new List<int>();
@@ -18,22 +18,50 @@ public class VoxelGenerator
     int faceCount;
     int chunkSize;
 
-    public VoxelGenerator(World world, Vector3 chunkOffset)
+    byte[,,] chunkBlocks;
+
+    public VoxelGenerator(World world, Vector2 chunkOffset)
     {
         this.world = world;
         this.chunkOffset = chunkOffset;
         chunkSize = world.chunkSize;
+
     }
 
-    public MeshData GenerateVoxelMesh()
+    public ChunkMeshData GenerateVoxelMesh()
     {
+        GenerateChunkBlocks();
         GenerateMesh();
-        return new MeshData(newVertices.ToArray(), newTriangles.ToArray(), newUV.ToArray());
+        return new ChunkMeshData(newVertices.ToArray(), newTriangles.ToArray(), newUV.ToArray());
+    }
+
+    void GenerateChunkBlocks()
+    {
+        chunkBlocks = new byte[chunkSize, world.sizeY, chunkSize];
+
+        for (int x = 0; x < chunkSize; x++)
+        {
+            for (int z = 0; z < chunkSize; z++)
+            {
+                float height = Height(x, z);
+
+                for (int y = 0; y < world.sizeY; y++)
+                {
+                    if (y <= height * world.sizeY)
+                    {
+                        chunkBlocks[x, y, z] = 1;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     void GenerateMesh()
     {
-
         for (int x = 0; x < chunkSize; x++)
         {
             for (int y = 0; y < chunkSize; y++)
@@ -198,7 +226,16 @@ public class VoxelGenerator
 
     byte Block(int x, int y, int z)
     {
-        return world.Block(x + (int)chunkOffset.x, y + (int)chunkOffset.y, z + (int)chunkOffset.z);
+        if (y >= chunkSize)
+            return (byte)0;
+        else if (x >= chunkSize || x < 0 || y < 0 || z >= chunkSize || z < 0)
+            return (byte)0;
+
+        return chunkBlocks[x, y, z];
     }
     
+    float Height(int x, int z)
+    {
+        return world.heightMap[x + (int)chunkOffset.x, z + (int)chunkOffset.y];
+    }
 }

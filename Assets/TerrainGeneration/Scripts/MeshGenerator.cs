@@ -5,7 +5,7 @@ using UnityEngine;
 public static class MeshGenerator {
     
 
-    public static MeshData GenerateTerrainMesh (float[,] heightMap, float heightMultiplier)
+    public static ChunkMeshData GenerateTerrainMesh (float[,] heightMap, float heightMultiplier)
     {
         int width = heightMap.GetLength(0);
         int height = heightMap.GetLength(1);
@@ -13,7 +13,7 @@ public static class MeshGenerator {
         float topLeftx = (width - 1)/-2f;
         float topLeftz = (height - 1) / 2f;
         
-        MeshData meshData = new MeshData(width, height);
+        ChunkMeshData meshData = new ChunkMeshData(width, height);
         int vertexIndex = 0;
 
         for (int y = 0; y < height; y++)
@@ -38,7 +38,7 @@ public static class MeshGenerator {
     
 }
 
-public class MeshData
+public class ChunkMeshData
 {
     public Vector3[] vertices;
     public int[] triangles;
@@ -46,14 +46,14 @@ public class MeshData
 
     int triangleIndex;
 
-    public MeshData(int meshWidth, int meshHeight)
+    public ChunkMeshData(int meshWidth, int meshHeight)
     {
         vertices = new Vector3[meshWidth * meshHeight];
         triangles = new int[((meshWidth - 1) * (meshHeight - 1)) * 6];
         uvs = new Vector2[meshWidth * meshHeight];
     }
 
-    public MeshData(Vector3[] vertices, int[] triangles, Vector2[] uvs)
+    public ChunkMeshData(Vector3[] vertices, int[] triangles, Vector2[] uvs)
     {
         this.vertices = vertices;
         this.triangles = triangles;
